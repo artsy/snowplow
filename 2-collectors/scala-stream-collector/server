@@ -1,0 +1,2 @@
+# shortcut for running this project locally
+./target/scala-2.10/snowplow-stream-collector-0.1.0 --config myconf.conf

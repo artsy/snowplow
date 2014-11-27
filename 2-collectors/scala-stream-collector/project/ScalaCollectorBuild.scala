@@ -29,6 +29,7 @@ object ScalaCollectorBuild extends Build {
   // dependencies.
   lazy val project = Project("snowplow-stream-collector", file("."))
     .settings(buildSettings: _*)
+    .settings(com.typesafe.sbt.SbtNativePackager.packageArchetype.java_application: _*)
     .settings(
       libraryDependencies ++= Seq(
         Libraries.akkaActor,
