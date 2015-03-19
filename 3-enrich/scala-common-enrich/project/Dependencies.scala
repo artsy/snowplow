@@ -13,7 +13,7 @@
 import sbt._
 
 object Dependencies {
-  
+
   val resolutionRepos = Seq(
     // Required for our Scalaz snapshot
     "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/releases/",
@@ -36,9 +36,12 @@ object Dependencies {
     val yodaTime         = "2.1"
     val yodaConvert      = "1.2"
     val useragent        = "1.11"
+    val commonsBeanUtils = "1.9.2"
     // Scala
     val scalaz7          = "7.0.0"
     val argonaut         = "6.0"
+    // for anyone wondering where snowplowRawEvent comes from:
+    // 2-collectors/thrift-raw-event/src/main/thrift/snowplow-raw-event.thrift
     val snowplowRawEvent = "0.1.0-SNAPSHOT"
     val scalaUtil        = "0.1.0"
     val refererParser    = "0.1.1"
@@ -58,6 +61,7 @@ object Dependencies {
     // Java
     val httpClient       = "org.apache.httpcomponents"  %  "httpclient"               % V.http
     val commonsLang      = "org.apache.commons"         %  "commons-lang3"            % V.commonsLang
+    val commonsBeanUtils = "commons-beanutils"          %  "commons-beanutils"        % V.commonsBeanUtils
     val commonsIo        = "commons-io"                 %  "commons-io"               % V.commonsIo
     val yodaTime         = "joda-time"                  %  "joda-time"                % V.yodaTime
     val yodaConvert      = "org.joda"                   %  "joda-convert"             % V.yodaConvert

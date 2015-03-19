@@ -38,6 +38,7 @@ object MiscEnrichments {
    * @return the complete ETL version
    */
   def etlVersion(hostEtlVersion: String): String =
+    // the e in this short string stands for enricher (the host), l stands for library (this project)
     if (ProjectSettings.version.contains("SNAPSHOT"))
       "e-%s-l-%s-s".format(hostEtlVersion.replaceAll("[^\\d.]", ""), ProjectSettings.version.replace("SNAPSHOT", "").replaceAll("[^\\d.]", ""))
     else

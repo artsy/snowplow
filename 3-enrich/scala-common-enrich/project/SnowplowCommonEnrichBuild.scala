@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2012-2014 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
@@ -36,6 +36,7 @@ object SnowplowCommonEnrichBuild extends Build {
         Libraries.yodaTime,
         Libraries.yodaConvert,
         Libraries.commonsLang,
+        Libraries.commonsBeanUtils,
         Libraries.commonsIo,
         Libraries.useragent,
         // Scala

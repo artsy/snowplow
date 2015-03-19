@@ -31,7 +31,9 @@ class EtlVersionTest extends MutSpecification {
 
   "The ETL version" should {
     "be successfully returned" in {
-      MiscEnrichments.etlVersion("hadoop-0.3.6") must_== "e-0.3.6-l-0.2.2-s"
+      val truncates = MiscEnrichments.etlVersion("veryLongHostsNameToTruncate-0.3.6").contains("e-0.3.6-l-")
+      val isShort = MiscEnrichments.etlVersion("veryLongHostsNameToTruncate-0.3.6").length < 25
+      (truncates && isShort) must_== true
     }
   }
 }

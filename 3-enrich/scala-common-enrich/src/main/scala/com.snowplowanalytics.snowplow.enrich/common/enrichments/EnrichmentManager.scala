@@ -42,6 +42,8 @@ import PE.AnonOctets.AnonOctets
 import web.{PageEnrichments => WPE}
 import web.{AttributionEnrichments => WAE}
 
+import org.apache.commons.beanutils.BeanUtils;
+
 /**
  * A module to hold our enrichment process.
  *
@@ -60,7 +62,7 @@ object EnrichmentManager {
    *         either failure Strings or a
    *         NonHiveOutput.
    */
-  def enrichEvent(geo: IpGeo, hostEtlVersion: String, anonOctets: AnonOctets, raw: CanonicalInput): ValidatedCanonicalOutput = {
+  def enrichEvent(geo: IpGeo, hostEtlVersion: String, anonOctets: AnonOctets, raw: CanonicalInput): Array[ValidatedCanonicalOutput] = {
 
     // Placeholders for where the Success value doesn't matter.
     // Useful when you're updating large (>22 field) POSOs.
@@ -197,7 +199,6 @@ object EnrichmentManager {
           ("pp_may"  , (CU.stringToJInteger, "pp_yoffset_max")))
 
     val sourceMap: SourceMap = parameters.map(p => (p.getName -> p.getValue)).toList.toMap
-  
     val transform = event.transform(sourceMap, transformMap)
 
     // Potentially update the page_url and set the page URL components
@@ -230,7 +231,7 @@ object EnrichmentManager {
     // Potentially set the referrer details and URL components
     val refererUri = CU.stringToUri(event.page_referrer)
     for (uri <- refererUri; u <- uri) {
-      
+
       // Set the URL components
       val components = CU.explodeUri(u)
       event.refr_urlscheme = components.scheme
@@ -277,9 +278,24 @@ object EnrichmentManager {
     event.refr_term = CU.truncate(event.refr_term, 255)
     event.se_label = CU.truncate(event.se_label, 255)
 
-    // Collect our errors on Failure, or return our event on Success 
-    (useragent.toValidationNel |@| client.toValidationNel |@| pageUri.toValidationNel |@| geoLocation.toValidationNel |@| refererUri.toValidationNel |@| transform |@| campaign) {
-      (_,_,_,_,_,_,_) => event
+
+    // Collect our errors on Failure, or return our event on Success
+    if (event.se_category == "impression") {
+      event.se_label.split(",").map { id =>
+        val newEvent = new CanonicalOutput()
+        BeanUtils.copyProperties(newEvent, event)
+        newEvent.se_label = id
+
+        (useragent.toValidationNel |@| client.toValidationNel |@| pageUri.toValidationNel |@| geoLocation.toValidationNel |@| refererUri.toValidationNel |@| transform |@| campaign) {
+          (_,_,_,_,_,_,_) => newEvent
+        }
+      }
+    } else {
+      Array(
+        (useragent.toValidationNel |@| client.toValidationNel |@| pageUri.toValidationNel |@| geoLocation.toValidationNel |@| refererUri.toValidationNel |@| transform |@| campaign) {
+          (_,_,_,_,_,_,_) => event
+        }
+      )
     }
   }
 }
