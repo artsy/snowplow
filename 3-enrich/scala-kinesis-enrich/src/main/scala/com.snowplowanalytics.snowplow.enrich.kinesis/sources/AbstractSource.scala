@@ -45,11 +45,15 @@ import org.slf4j.LoggerFactory
 abstract class AbstractSource(config: KinesisEnrichConfig) {
   private lazy val log = LoggerFactory.getLogger(getClass())
   import log.{error, debug, info, trace}
-  
+
   /**
    * Never-ending processing loop over source stream.
+   * implement in child class
    */
   def run
+
+  // KinesisSource references this provider, so we need this default value
+  var kinesisProvider: AWSCredentialsProvider = _
 
   /**
    * Fields in our CanonicalOutput which are discarded for legacy
@@ -57,27 +61,14 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
    */
   private val DiscardedFields = Array("page_url", "page_referrer")
 
-  // Initialize a kinesis provider to use with a Kinesis source or sink.
-  protected val kinesisProvider = createKinesisProvider
-
   // Initialize the sink to output enriched events to.
-  // protected val sink: Option[ISink] = config.sink match {
-  //   case Sink.Kinesis => new KinesisSink(kinesisProvider, config).some
-  //   case Sink.Stdouterr => new StdouterrSink().some
-  //   case Sink.Test => None
-  // }
-
-  protected var latestSink = new KinesisSink(kinesisProvider, config).some
-  protected var latestSinkAge = 0
-  protected var totalSinkAge = 0
-
-  implicit def sink(): Option[ISink] = {
-    // if (latestSinkAge > 500) {
-    //   info(s"refreshing KinesisSink")
-    //   latestSink = new KinesisSink(kinesisProvider, config).some
-    //   latestSinkAge = 0
-    // }
-    return latestSink
+  protected val sink: Option[ISink] = config.sink match {
+    case Sink.Kinesis => {
+      kinesisProvider = createKinesisProvider
+      new KinesisSink(kinesisProvider, config).some
+    }
+    case Sink.Stdouterr => new StdouterrSink().some
+    case Sink.Test => None
   }
 
   private lazy val ipGeo = new IpGeo(
@@ -87,6 +78,8 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   )
   // Iterate through an enriched CanonicalOutput object and tab separate
   // the fields to a string.
+  // TODO this class should wrap the output in a type, so that we can identify
+  // what kind of string this is
   def tabSeparateCanonicalOutput(output: CanonicalOutput): String = {
     output.getClass.getDeclaredFields
     .filter { field =>
@@ -101,16 +94,18 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
   // Helper method to enrich an event.
   // TODO: this is a slightly odd design: it's a pure function if our
   // our sink is Test, but it's an impure function (with
-  // storeCanonicalOutput side effect) for the other sinks. We should
+  // storeOutput side effect) for the other sinks. We should
   // break this into a pure function with an impure wrapper.
-  def enrichEvent(binaryData: Array[Byte]): Option[String] = {
+  def enrichEvent(binaryData: Array[Byte]): Array[Option[String]] = {
+    // validate binaryData, is it mapable to Canonical Output? if so store
+    // in the canonical storage
     val canonicalInput = ThriftLoader.toCanonicalInput(binaryData)
 
-    canonicalInput.toValidationNel match { 
+    canonicalInput.toValidationNel match {
 
-      case Failure(f)        => None
+      case Failure(f)        => Array(None)
         // TODO: https://github.com/snowplow/snowplow/issues/463
-      case Success(None)     => None // Do nothing
+      case Success(None)     => Array(None) // Do nothing
       case Success(Some(ci)) => {
         val anonOctets =
           if (!config.anonIpEnabled || config.anonOctets == 0) {
@@ -118,27 +113,32 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
           } else {
             AnonOctets(config.anonOctets)
           }
-        val canonicalOutput = EnrichmentManager.enrichEvent(
+        // TODO: this value should be a particular kind of a type depending
+        // on what kind of enrichment ends up happening
+        val canonicalOutputs = EnrichmentManager.enrichEvent(
           ipGeo,
           s"kinesis-${generated.Settings.version}",
           anonOctets,
           ci
         )
 
-        canonicalOutput.toValidationNel match {
-          case Success(co) =>
-            val ts = tabSeparateCanonicalOutput(co)
-            for (s <- sink()) {
-              // TODO: pull this side effect into parent function
-              s.storeCanonicalOutput(ts, co.user_ipaddress)
-              latestSinkAge += 1
-              totalSinkAge += 1
-              info(s"storeCanonicalOutput with a latest/toal SinkAge of ${latestSinkAge}/${totalSinkAge}")
-            }
-            Some(ts)
-          case Failure(f)  => None
-            // TODO: https://github.com/snowplow/snowplow/issues/463
-        }
+        // the case statement should use the type information to pass the concept
+        // of which stream to put the event on
+        canonicalOutputs.map ( canonicalOutput =>
+          canonicalOutput.toValidationNel match {
+            case Success(co) =>
+              val ts = tabSeparateCanonicalOutput(co)
+              for (s <- sink) {
+                val stream = if (co.se_category == "impression") "impression" else "canonical";
+                // TODO: pull this side effect into parent function
+                s.storeOutput(ts, co.user_ipaddress, stream) // ts should have a type that helps the KinesisSink know what stream to output this to
+                info(s"storeOutput")
+              }
+              Some(ts)
+            case Failure(f)  => None
+              // TODO: https://github.com/snowplow/snowplow/issues/463
+          }
+        )
       }
     }
   }
@@ -159,6 +159,8 @@ abstract class AbstractSource(config: KinesisEnrichConfig) {
       )
     }
   }
+
+  // http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/ClasspathPropertiesFileCredentialsProvider.html
   private def isCpf(key: String): Boolean = (key == "cpf")
 
   // Wrap BasicAWSCredential objects.

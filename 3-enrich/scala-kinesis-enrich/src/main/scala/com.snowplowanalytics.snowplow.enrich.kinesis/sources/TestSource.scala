@@ -25,7 +25,7 @@ package sources
  * sources.
  */
 class TestSource(config: KinesisEnrichConfig)
-    extends AbstractSource(config) {
+  extends AbstractSource(config){
 
   /**
    * Never-ending processing loop over source stream.

@@ -60,8 +60,8 @@ import collectors.thrift.{
  * TODO: replace printlns with using Java logger
  */
 class KinesisSource(config: KinesisEnrichConfig)
-    extends AbstractSource(config) {
-  
+  extends AbstractSource(config) {
+
   /**
    * Never-ending processing loop over source stream.
    */
@@ -72,17 +72,17 @@ class KinesisSource(config: KinesisEnrichConfig)
 
     val kinesisClientLibConfiguration = new KinesisClientLibConfiguration(
       config.appName,
-      config.rawInStream, 
+      config.rawInStream,
       kinesisProvider,
       workerId
     ).withInitialPositionInStream(
       InitialPositionInStream.valueOf(config.initialPosition)
     )
-    
+
     println(s"Running: ${config.appName}.")
     println(s"Processing raw input stream: ${config.rawInStream}")
 
-    
+
     val rawEventProcessorFactory = new RawEventProcessorFactory(
       config,
       sink.get // TODO: yech
@@ -118,7 +118,7 @@ class KinesisSource(config: KinesisEnrichConfig)
     private val BACKOFF_TIME_IN_MILLIS = 3000L
     private val NUM_RETRIES = 10
     private val CHECKPOINT_INTERVAL_MILLIS = 1000L
-      
+
     @Override
     def initialize(shardId: String) = {
       println("Initializing record processor for shard: " + shardId)
@@ -161,7 +161,7 @@ class KinesisSource(config: KinesisEnrichConfig)
         checkpoint(checkpointer)
       }
     }
-      
+
     private def checkpoint(checkpointer: IRecordProcessorCheckpointer) = {
       println(s"Checkpointing shard $kinesisShardId")
       breakable {

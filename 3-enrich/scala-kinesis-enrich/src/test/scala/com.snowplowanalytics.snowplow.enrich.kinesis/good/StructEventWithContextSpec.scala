@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2013-2014 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
@@ -139,11 +139,11 @@ class StructEventWithContextSpec extends Specification {
     "enrich a valid structured event with context" in {
 
       val rawEvent = Base64.decodeBase64(StructEventWithContextSpec.raw)
-      
-      val enrichedEvent = TestSource.enrichEvent(rawEvent)
-      enrichedEvent must beSome
 
-      val fields = enrichedEvent.get.split("\t")
+      val enrichedEvents = TestSource.enrichEvent(rawEvent)
+      enrichedEvents.length must_== 1
+
+      val fields = enrichedEvents(0).get.split("\t")
       fields.size must beEqualTo(StructEventWithContextSpec.expected.size)
 
       Result.unit(

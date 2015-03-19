@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2013-2014 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
@@ -139,11 +139,11 @@ class StructEventSpec extends Specification {
     "enrich a valid structured event" in {
 
       val rawEvent = Base64.decodeBase64(StructEventSpec.raw)
-      
-      val enrichedEvent = TestSource.enrichEvent(rawEvent)
-      enrichedEvent must beSome
 
-      val fields = enrichedEvent.get.split("\t")
+      val enrichedEvents = TestSource.enrichEvent(rawEvent)
+      enrichedEvents.length must_== 1
+
+      val fields = enrichedEvents(0).get.split("\t")
       fields.size must beEqualTo(StructEventSpec.expected.size)
 
       Result.unit(

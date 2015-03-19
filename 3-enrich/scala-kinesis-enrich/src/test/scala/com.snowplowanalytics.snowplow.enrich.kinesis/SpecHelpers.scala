@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2013-2014 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
@@ -36,9 +36,10 @@ import common.outputs.CanonicalOutput
 object SpecHelpers {
 
   /**
-   * The Kinesis Enrich being used
+   * The Kinesis Enrich being used. Really doesn't matter
+   * and changes with version numbers
    */
-  val EnrichVersion = "kinesis-0.1.0-common-0.2.0"
+  val EnrichVersion = ".{1,25}"
 
   /**
    * The regexp pattern for a Type 4 UUID.
@@ -54,7 +55,7 @@ object SpecHelpers {
    * Fields in our CanonicalOutput which will be checked
    * against a regexp, not for equality.
    */
-  private val UseRegexpFields = List("event_id")
+  private val UseRegexpFields = List("event_id", "v_etl")
 
   /**
    * Fields in our CanonicalOutput which are discarded
@@ -160,8 +161,10 @@ enrich {
       raw: "SnowplowRaw"
     }
     out: {
-      enriched: "SnowplowEnriched"
-      enriched_shards: 1 # Number of shards to use if created.
+      canonical: "SnowplowEnriched"
+      canonical_shards: 1 # Number of shards to use if created.
+      impression: "SnowplowEnrichedImpression"
+      impression_shards: 1 # Number of shards to use if created.
       bad: "SnowplowBad" # Not used until #463
       bad_shards: 1 # Number of shards to use if created.
     }

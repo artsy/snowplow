@@ -31,6 +31,9 @@ trait ISink {
    * CanonicalOutput takes the form of a tab-delimited
    * String until such time as https://github.com/snowplow/snowplow/issues/211
    * is implemented.
+   *
+   * TODO: this needs to indicate the [canonical|impression]-ness of the
+   * storage desired via a type, not a string acting as a symbol of this concept
    */
-  def storeCanonicalOutput(output: String, key: String)
+  def storeOutput(output: String, key: String, genericStreamName: String = "canonical")
 }

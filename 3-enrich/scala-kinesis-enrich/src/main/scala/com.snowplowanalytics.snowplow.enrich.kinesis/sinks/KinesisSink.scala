@@ -55,17 +55,15 @@ import common.outputs.CanonicalOutput
 /**
  * Kinesis Sink for Scala enrichment
  */
-class KinesisSink(provider: AWSCredentialsProvider,
-    config: KinesisEnrichConfig) extends ISink {
+class KinesisSink(provider: AWSCredentialsProvider, config: KinesisEnrichConfig) extends ISink {
   private lazy val log = LoggerFactory.getLogger(getClass())
   import log.{error, debug, info, trace}
 
   // Create a Kinesis client for stream interactions.
   private implicit val kinesis = Client.fromCredentials(provider)
 
-  // The output stream for enriched events.
-  private val enrichedStream = createAndLoadStream()
-  private var enrichedStreamAge = 0
+  // A single sink may have multiple streams, which is its own responsibility to manage
+  private val streams = Map(("canonical", createAndLoadStream()), ("impressions", createAndLoadStream("impressions")))
 
   /**
    * Checks if a stream exists.
@@ -90,9 +88,8 @@ class KinesisSink(provider: AWSCredentialsProvider,
   /**
    * Creates a new stream if one doesn't exist
    */
-  def createAndLoadStream(timeout: Int = 60): Stream = {
-    val name = config.enrichedOutStream
-    val size = config.enrichedOutStreamShards
+  def createAndLoadStream(genericStreamName: String = "canonical", timeout: Int = 60): Stream = {
+    val (name, size) = config.outStreamInfoFor(genericStreamName)
     if (streamExists(name)) {
       Kinesis.stream(name)
     } else {
@@ -126,16 +123,15 @@ class KinesisSink(provider: AWSCredentialsProvider,
    * String until such time as https://github.com/snowplow/snowplow/issues/211
    * is implemented.
    */
-  def storeCanonicalOutput(output: String, key: String) = {
-    enrichedStreamAge += 1
+  def storeOutput(output: String, key: String, genericStreamName: String = "canonical") = {
     val putData = for {
-      p <- enrichedStream.put(
+      p <- streams(genericStreamName).put(
         ByteBuffer.wrap(output.getBytes),
         key
       )
     } yield p
     val result = Await.result(putData, Duration(60, SECONDS))
-    info(s"Write #${enrichedStreamAge} was successful")
+    info(s"${genericStreamName} write was successful")
     info(s"  + ShardId: ${result.shardId}")
     info(s"  + SequenceNumber: ${result.sequenceNumber}")
   }

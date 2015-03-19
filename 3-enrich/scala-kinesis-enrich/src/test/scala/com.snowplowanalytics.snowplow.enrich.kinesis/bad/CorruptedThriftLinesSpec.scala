@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2013-2014 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
@@ -41,7 +41,7 @@ class CorruptedThriftLinesSpec extends Specification with ScalaCheck { def is =
   def e1 = check {
     (raw: String) => {
       val eventBytes = Base64.decodeBase64(raw)
-      TestSource.enrichEvent(eventBytes) must beNone
+      TestSource.enrichEvent(eventBytes) must_== Array(None)
     }
   }
 
