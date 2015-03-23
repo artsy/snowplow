@@ -63,7 +63,7 @@ class KinesisSink(provider: AWSCredentialsProvider, config: KinesisEnrichConfig)
   private implicit val kinesis = Client.fromCredentials(provider)
 
   // A single sink may have multiple streams, which is its own responsibility to manage
-  private val streams = Map(("canonical", createAndLoadStream()), ("impressions", createAndLoadStream("impressions")))
+  private val streams = Map(("canonical", createAndLoadStream()), ("impression", createAndLoadStream("impression")))
 
   /**
    * Checks if a stream exists.
