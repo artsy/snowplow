@@ -121,6 +121,7 @@ public class MyRedshiftBasicEmitter extends MyS3Emitter {
         exec.append("CREDENTIALS 'aws_access_key_id=" + accessKey);
         exec.append(";aws_secret_access_key=" + secretKey + "' ");
         exec.append("DELIMITER '" + redshiftDelimiter + "'");
+        exec.append("TRUNCATECOLUMNS");
         exec.append(";");
         return exec.toString();
     }
