@@ -15,6 +15,7 @@ package enrichments
 
 // Scala
 import scala.collection.mutable.ListBuffer
+import scala.util.matching.Regex
 
 // Scalaz
 import scalaz._
@@ -280,7 +281,21 @@ object EnrichmentManager {
 
 
     // Collect our errors on Failure, or return our event on Success
-    if (event.se_category == "impression") {
+    val batchPattern = new Regex("^batch:")
+    val isBatchEvent = !(batchPattern findFirstMatchIn event.se_category).isEmpty
+
+    if (isBatchEvent) {
+      val newCategory = batchPattern replaceFirstIn(event.se_category, "")
+      event.se_label.split(",").map { id =>
+        val newEvent = new CanonicalOutput()
+        BeanUtils.copyProperties(newEvent, event)
+        newEvent.se_label = id
+        newEvent.se_category = newCategory
+        (useragent.toValidationNel |@| client.toValidationNel |@| pageUri.toValidationNel |@| geoLocation.toValidationNel |@| refererUri.toValidationNel |@| transform |@| campaign) {
+          (_,_,_,_,_,_,_) => newEvent
+        }
+      }
+    } else if (event.se_category == "impression") {
       event.se_label.split(",").map { id =>
         val newEvent = new CanonicalOutput()
         BeanUtils.copyProperties(newEvent, event)
